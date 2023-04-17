@@ -21,8 +21,6 @@ public class PlayerMovement2 : MonoBehaviour
     [SerializeField]
     private float coyoteTimeDelay = 0.25f;
 
-    private float coyoteTimer;
-
 
     [SerializeField]
     private bool isFacingRight = true;
@@ -68,27 +66,22 @@ public class PlayerMovement2 : MonoBehaviour
         direction = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));    
         if(Input.GetButtonDown("Jump")){
             jumpTimer = Time.time + jumpDelay;
-            coyoteTimer = lastOnGround + coyoteTimeDelay;
         }
-        if(!onGround){
-            lastOnGround = Time.time;
-        }
-
-        // Debug.Log(coyoteTimer + " " + Time.time);
 
         
     }
     private void FixedUpdate() {
         moveCharacter(direction.x);
-        if((jumpTimer > Time.time && onGround) || coyoteTimer > Time.time){
-            Jump();
+        if((jumpTimer > Time.time)){
+            if(onGround){
+                Jump();
+            }
+            else if(Mathf.Abs(lastOnGround - Time.time) < coyoteTimeDelay && Mathf.Abs(lastOnGround - Time.time) > 0f ){
+                Jump();
+                Debug.Log("Coyote Jump!");
+            }
         }
-        // } else if(!onGround){
-        //     coyoteTimer = Time.time + coyoteTimeDelay;
-        // }
-        // if(Input.GetButtonDown("Jump") && coyoteTimeDelay + Time.time > coyoteTimer){
-        //         Jump(); 
-        // }
+        
         modifyPhysics();
     }
 
@@ -112,7 +105,7 @@ public class PlayerMovement2 : MonoBehaviour
                 rb.drag = 0;
             }
             rb.gravityScale = 0;
-            lastOnGround = 0;
+            lastOnGround = Time.time;
         }
         else{
             rb.gravityScale = gravity;
@@ -122,6 +115,7 @@ public class PlayerMovement2 : MonoBehaviour
             } else if (rb.velocity.y > 0 && !Input.GetButton("Jump")){
                 rb.gravityScale = gravity * (fallMultiplier / 2);
             }
+
         }
     }    
     void flip(){
@@ -132,10 +126,10 @@ public class PlayerMovement2 : MonoBehaviour
     }
 
     void Jump(){
+        // lastOnGround = 0;
         rb.velocity = new Vector2(rb.velocity.x, 0);
         rb.AddForce(Vector2.up*jumpForce, ForceMode2D.Impulse);
         jumpTimer = 0;
-        coyoteTimer = 0;
         lastJump = Time.time;
     }
 
