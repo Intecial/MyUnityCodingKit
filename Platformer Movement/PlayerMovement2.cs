@@ -21,6 +21,9 @@ public class PlayerMovement2 : MonoBehaviour
     [SerializeField]
     private float coyoteTimeDelay = 0.25f;
 
+    [SerializeField]
+    private float maximumFallSpeed = 50f;
+
 
     [SerializeField]
     private bool isFacingRight = true;
@@ -30,6 +33,12 @@ public class PlayerMovement2 : MonoBehaviour
     private Rigidbody2D rb;
     [SerializeField]
     private LayerMask groundLayer; 
+        [SerializeField]
+    private Animator animator;
+
+    [SerializeField]
+    private ParticleSystem dust;
+    
 
     [Header("Physics")]
     [SerializeField]
@@ -49,14 +58,21 @@ public class PlayerMovement2 : MonoBehaviour
     [SerializeField]
     private Vector3 colliderOffset;
 
+
+
     private float lastJump = 0;
 
     private float lastOnGround = 0;
 
+    const string IDLE = "idle";
+    const string JUMP = "Jump";
+    const string FALL = "fall";
+
     // Start is called before the first frame update
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();        
+        rb = GetComponent<Rigidbody2D>();      
+        animator = GetComponentInChildren<Animator>();
     }
 
     // Update is called once per frame
@@ -67,7 +83,10 @@ public class PlayerMovement2 : MonoBehaviour
         if(Input.GetButtonDown("Jump")){
             jumpTimer = Time.time + jumpDelay;
         }
-
+        if(onGround){
+            ChangeAnimationState(IDLE);
+        }
+        Debug.Log(rb.velocity.y);
         
     }
     private void FixedUpdate() {
@@ -78,10 +97,9 @@ public class PlayerMovement2 : MonoBehaviour
             }
             else if(Mathf.Abs(lastOnGround - Time.time) < coyoteTimeDelay && Mathf.Abs(lastOnGround - Time.time) > 0f ){
                 Jump();
-                Debug.Log("Coyote Jump!");
             }
         }
-        
+
         modifyPhysics();
     }
 
@@ -112,13 +130,21 @@ public class PlayerMovement2 : MonoBehaviour
             rb.drag = linearDrag * 0.15f;
             if(rb.velocity.y < 0){
                 rb.gravityScale = gravity * fallMultiplier;
+                ChangeAnimationState(FALL);
             } else if (rb.velocity.y > 0 && !Input.GetButton("Jump")){
                 rb.gravityScale = gravity * (fallMultiplier / 2);
+                ChangeAnimationState(FALL);
             }
+
+            if(rb.velocity.y < -maximumFallSpeed){
+                    rb.velocity = new Vector2(rb.velocity.x, -maximumFallSpeed);
+            }
+            
 
         }
     }    
     void flip(){
+        createDust();
         isFacingRight = !isFacingRight;
         Vector3 localScale = transform.localScale;
         localScale.x *= -1f;
@@ -127,6 +153,8 @@ public class PlayerMovement2 : MonoBehaviour
 
     void Jump(){
         // lastOnGround = 0;
+        createDust();
+        animator.Play(JUMP);
         rb.velocity = new Vector2(rb.velocity.x, 0);
         rb.AddForce(Vector2.up*jumpForce, ForceMode2D.Impulse);
         jumpTimer = 0;
@@ -137,5 +165,12 @@ public class PlayerMovement2 : MonoBehaviour
         Gizmos.color = Color.magenta;
         Gizmos.DrawLine(transform.position + colliderOffset, transform.position + colliderOffset + Vector3.down * groundLength);
         Gizmos.DrawLine(transform.position - colliderOffset, transform.position - colliderOffset + Vector3.down * groundLength);
+    }
+    void ChangeAnimationState(string newState){
+        animator.Play(newState);
+    }
+
+    void createDust(){
+        dust.Play();
     }
 }
